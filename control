@@ -1,9 +1,9 @@
 Package: com.tr1fecta.weatherground
 Name: WeatherGround
 Depends: mobilesubstrate
-Version: 0.0.1
+Version: 1.0
 Architecture: iphoneos-arm
-Description: An awesome MobileSubstrate tweak!
-Maintainer: tr1fecta
-Author: tr1fecta
+Description: Bring the Weather's app background to your wallpaper!
+Maintainer: Tr1Fecta
+Author: Tr1Fecta
 Section: Tweaks
