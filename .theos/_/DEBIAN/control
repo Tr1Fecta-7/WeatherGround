@@ -1,0 +1,10 @@
+Package: com.tr1fecta.weatherground
+Name: WeatherGround
+Depends: mobilesubstrate
+Architecture: iphoneos-arm
+Description: An awesome MobileSubstrate tweak!
+Maintainer: tr1fecta
+Author: tr1fecta
+Section: Tweaks
+Version: 0.0.1-29+debug
+Installed-Size: 104

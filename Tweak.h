@@ -2,6 +2,9 @@
 #include <Weather/TWCCityUpdater.h>
 #include <Weather/WeatherPreferences.h>
 #include <SpringBoardFoundation/SBFStaticWallpaperView.h>
+#include <SpringBoard/SBCoverSheetPanelBackgroundContainerView.h>
+#include <SpringBoard/SBWallpaperEffectView.h>
+
 
 @interface WUIWeatherCondition : NSObject <CALayerDelegate>
 @property (assign,nonatomic) City * city;
@@ -16,4 +19,12 @@
 @interface SBFStaticWallpaperView (WG)
 @property (nonatomic, strong) WUIDynamicWeatherBackground *bgView; 
 @property (nonatomic, strong) City *myCity; 
+@end
+
+@interface UIView (Private)
+-(id)_viewControllerForAncestor;
+@end
+
+@interface SBFWallpaperView (Private)
+@property (nonatomic,retain) UIView * contentView;     
 @end

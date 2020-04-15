@@ -1,6 +1,17 @@
 #include <RemoteLog.h>
 #include "Tweak.h"
 
+UIImage *newImage;
+
+%hook SBFWallpaperView
+
+-(void)didMoveToWindow {
+	%orig;
+	((UIImageView *)self.contentView).image = newImage;	
+}
+
+%end
+
 %hook SBFStaticWallpaperView 
 
 %property (nonatomic, strong) WUIDynamicWeatherBackground *bgView; 
@@ -8,7 +19,6 @@
 
 - (void)didMoveToWindow {
 	%orig;
-
 	if (self.bgView == nil) {
 		if ([[[%c(WeatherPreferences) userDefaultsPersistence] objectForKey:@"Cities"] count] > 0) {
 			id prefsCityDict = [[%c(WeatherPreferences) userDefaultsPersistence] objectForKey:@"Cities"][0];
@@ -23,6 +33,12 @@
 			self.bgView.city = self.myCity;
 			self.bgView.condition.city = self.myCity;
 			[self addSubview:self.bgView];
+
+			UIGraphicsBeginImageContextWithOptions(self.bgView.bounds.size, NO, UIScreen.mainScreen.scale);
+			[self.bgView drawViewHierarchyInRect:self.bgView.bounds afterScreenUpdates:YES];
+			newImage = UIGraphicsGetImageFromCurrentImageContext();
+			UIGraphicsEndImageContext();
+
 		}
 	}
 	[[%c(TWCCityUpdater) sharedCityUpdater] updateWeatherForCity:self.myCity];
