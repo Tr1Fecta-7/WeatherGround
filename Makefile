@@ -4,9 +4,10 @@ ARCHS = arm64 arm64e
 
 TWEAK_NAME = WeatherGround
 
-WeatherGround_FILES = Tweak.xm
-WeatherGround_CFLAGS = -fobjc-arc
+WeatherGround_FILES = $(wildcard *.xm)
+WeatherGround_CFLAGS = -fobjc-arc -Wno-unguarded-availability-new
 WeatherGround_FRAMEWORKS = CoreLocation
+WeatherGround_LIBRARIES = mryipc
 WeatherGround_PRIVATE_FRAMEWORKS = SpringBoardFoundation Weather WeatherUI
 WeatherGround_LDFLAGS = $(THEOS)/sdks/iPhoneOS13.3.sdk/System/Library/PrivateFrameworks/WeatherUI.framework/WeatherUI.tbd
 

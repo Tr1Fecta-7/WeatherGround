@@ -18,6 +18,22 @@
 			<key>defaults</key>
 			<string>com.tr1fecta.wgprefs</string>
 			<key>key</key>
+			<string>kTweakEnabled</string>
+			<key>label</key>
+			<string>Tweak Enabled</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.tr1fecta.wgprefs</string>
+			<key>key</key>
 			<string>kUseEntireWeatherView</string>
 			<key>label</key>
 			<string>Use Full Weather View</string>
