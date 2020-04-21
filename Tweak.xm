@@ -129,6 +129,11 @@ NSString *kTemperatureUnit;
 
 
 %ctor {
+	NSString *args = NSProcessInfo.processInfo.arguments[0];
+	if (![args containsString:@"SpringBoard"] && ![args containsString:@"/Application"]) {
+		return;
+	}
+
 	NSBundle *wUIBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/WeatherUI.framework"];
 	NSBundle *wBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/Weather.framework"];
 	if (!wUIBundle.loaded) {
@@ -161,8 +166,6 @@ NSString *kTemperatureUnit;
 					LockScreenVCClass = %c(SBDashBoardViewController);
 				}
 				%init(LockScreenVC=LockScreenVCClass);
-
-				
 			}
 			[WeatherGroundServer sharedServer];
 		}
