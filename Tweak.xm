@@ -35,17 +35,10 @@ NSString *kTemperatureUnit;
 		[self changeLabelTextWithAttributedString:temperatureAttrString];
 
 		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-			// Get current local time
-			time_t curtime;
-			struct tm *timeInfo;
-			time(&curtime);
-			timeInfo = localtime(&curtime);
+			NSDateFormatter *formatter = [NSDateFormatter new];
+			formatter.dateFormat = @"HH:mm";
+			NSString *currentStatusTime = [formatter stringFromDate:[NSDate now]];
 
-			char currentTime[8];
-			// Get the hour and minute out of our timeInfo struct
-			strftime(currentTime, 8, "%H:%M", timeInfo);
-	
-			NSString *currentStatusTime = ((_UIStatusBar *)self.superview.superview).currentAggregatedData.timeEntry.stringValue ?: [[NSString alloc] initWithUTF8String:currentTime];
 			self.attributedText = nil;
 			[self changeLabelText:currentStatusTime];
 		});
