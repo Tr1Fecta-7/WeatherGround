@@ -8,7 +8,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Style Options</string>
+			<string>Tweak Options</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -25,6 +25,8 @@
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Style Options</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -90,6 +92,62 @@
 				<string>kelvin</string>
 			</array>
 		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Auto Update Interval (in minutes)</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>defaults</key>
+			<string>com.tr1fecta.wgprefs</string>
+			<key>label</key>
+			<string>Interval</string>
+			<key>key</key>
+			<string>kAutoUpdateInterval</string>
+			<key>isSegmented</key>
+			<true/>
+			<key>min</key>
+			<real>0</real>
+			<key>max</key>
+			<real>60</real>
+			<key>segmentCount</key>
+			<integer>12</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+            <key>cell</key>
+            <string>PSGroupCell</string>
+            <key>label</key>
+            <string>Appearance Options (Only works if you have 2 different wallpapers for LS and HS)</string>
+        </dict>
+            <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.tr1fecta.wgprefs</string>
+            <key>key</key>
+            <string>kLockscreenEnabled</string>
+            <key>label</key>
+            <string>Use on Lockscreen</string>
+        </dict>
+        <dict>
+            <key>cell</key>
+            <string>PSSwitchCell</string>
+            <key>default</key>
+            <false/>
+            <key>defaults</key>
+            <string>com.tr1fecta.wgprefs</string>
+            <key>key</key>
+            <string>kHomescreenEnabled</string>
+            <key>label</key>
+            <string>Use on Homescreen</string>
+        </dict>
 	</array>
 	<key>title</key>
 	<string>WeatherGround</string>

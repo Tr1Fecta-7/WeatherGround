@@ -1,7 +1,18 @@
 #import "WeatherGroundServer.h"
+#import <RemoteLog.h>
 
 @implementation WeatherGroundServer {
     MRYIPCCenter* _center;
+}
+
+- (BOOL)boolForKey:(NSString *)key {
+    id object = [self.preferencesDictionary objectForKey:key];
+    return object ? [object boolValue] : NO;
+}
+
+- (int)intForKey:(NSString *)key {
+    id object = [self.preferencesDictionary objectForKey:key];
+    return object ? [object intValue] : 0;
 }
 
 + (instancetype)sharedServer {
@@ -17,14 +28,136 @@
     self = [super init];
     if (self) {
         _center = [MRYIPCCenter centerNamed:@"com.tr1fecta.WeatherGroundServer"];
-        [_center addTarget:self action:@selector(temperatureInfo:)];
+        [_center addTarget:self action:@selector(setStatusBarTextToWeatherInfo:)];
+        _preferencesDictionary =  [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
+        
         [self updateModel];
+
+        // Convert to minutes from seconds
+        double interval = (double)[self intForKey:@"kAutoUpdateInterval"] * 60;
+        if (interval > 0) {
+            _autoUpdateTimer = [NSTimer scheduledTimerWithTimeInterval:interval target:self selector:@selector(updateModel) userInfo:nil repeats:YES];
+        }
+        
     }
     return self;
 }
 
-- (void)setupDynamicWeatherBackgrounds {
+// In Apps
+- (void)setStatusBarTextToWeatherInfo:(NSDictionary *)infoDict {
+    if (self.statusStringView != nil) {
+        NSMutableAttributedString *temperatureAttrString = [[self temperatureInfo:infoDict[@"unit"]] objectForKey:@"weatherString"];
+        self.statusStringView.attributedText = temperatureAttrString;
+        [self changeLabelTextWithAttributedString:temperatureAttrString];
 
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+			// Get current local time
+			time_t curtime;
+			struct tm *timeInfo;
+			time(&curtime);
+			timeInfo = localtime(&curtime);
+
+			char currentTime[8];
+			// Get the hour and minute out of our timeInfo struct
+			strftime(currentTime, 8, "%H:%M", timeInfo);
+	
+			NSString *currentStatusTime = ((_UIStatusBar *)self.statusStringView.superview.superview).currentAggregatedData.timeEntry.stringValue ?: [[NSString alloc] initWithUTF8String:currentTime];
+			self.statusStringView.attributedText = nil;
+			[self changeLabelText:currentStatusTime];
+		});
+    }
+}
+
+- (void)changeLabelTextWithAttributedString:(NSMutableAttributedString *)text {
+	CATransition *animation = [CATransition animation];
+	animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+	animation.type = kCATransitionPush;
+	animation.subtype = kCATransitionFromTop;
+	animation.duration = 0.3;
+	[self.statusStringView.layer addAnimation:animation forKey:@"kCATransitionPush"];
+
+	self.statusStringView.attributedText = text;
+}
+
+- (void)changeLabelText:(NSString *)text {
+	CATransition *animation = [CATransition animation];
+	animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+	animation.type = kCATransitionPush;
+	animation.subtype = kCATransitionFromTop;
+	animation.duration = 0.3;
+	[self.statusStringView.layer addAnimation:animation forKey:@"kCATransitionPush"];
+
+	self.statusStringView.text = text;
+}
+
+- (void)setupDynamicWeatherBackgrounds {
+    SBWallpaperController *sharedInstance = [%c(SBWallpaperController) sharedInstance];
+    // Always create this instance for the weather effects layer, but only add if enabled
+    self.sharedBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    self.sharedBgView.city = [self myCity];
+    self.sharedBgView.condition.city = [self myCity];
+    if (sharedInstance.sharedWallpaperView != nil && [self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kUseWeatherEffectsOnly"] == NO) {
+        [sharedInstance.sharedWallpaperView addSubview:self.sharedBgView];
+
+        // Take a screenshot of the current view, to use on SBFWallpaperView's contentView's image, otherwise the background when pulling up on Notification Center and Lockscreen will be see through
+        UIGraphicsBeginImageContextWithOptions(self.sharedBgView.bounds.size, NO, UIScreen.mainScreen.scale);
+		[self.sharedBgView drawViewHierarchyInRect:self.sharedBgView.bounds afterScreenUpdates:YES];
+	    self.sharedImage = UIGraphicsGetImageFromCurrentImageContext();
+		UIGraphicsEndImageContext();
+    }
+   
+    // Check if the user is using 2 different wallpapers
+    if (sharedInstance.lockscreenWallpaperView != nil && sharedInstance.homescreenWallpaperView != nil && sharedInstance.sharedWallpaperView == nil) {
+        if ([self boolForKey:@"kLockscreenEnabled"]) {
+            self.lockScreenBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
+            self.lockScreenBgView.city = [self myCity];
+            self.lockScreenBgView.condition.city = [self myCity];
+
+            if ([self boolForKey:@"kUseEntireWeatherView"]) {
+                [sharedInstance.lockscreenWallpaperView addSubview:self.lockScreenBgView];
+            }
+        }
+        if ([self boolForKey:@"kHomescreenEnabled"]) {
+            self.homeScreenBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
+            self.homeScreenBgView.city = [self myCity];
+            self.homeScreenBgView.condition.city = [self myCity];
+            
+            if ([self boolForKey:@"kUseEntireWeatherView"]) {
+                [sharedInstance.homescreenWallpaperView addSubview:self.homeScreenBgView];
+            }
+        }
+    }
+}
+
+- (void)setupWeatherEffectLayers {
+    if ([self boolForKey:@"kUseWeatherEffectsOnly"] && [self boolForKey:@"kUseEntireWeatherView"] == NO) {
+        SBWallpaperController *sharedInstance = [%c(SBWallpaperController) sharedInstance];
+
+        if (sharedInstance.sharedWallpaperView != nil && self.sharedBgView != nil) {
+            CALayer *nLayer = [self weatherEffectsLayerForWeatherView:nil];
+			[sharedInstance.sharedWallpaperView.layer addSublayer:nLayer];
+        }
+        else if (sharedInstance.lockscreenWallpaperView != nil && sharedInstance.homescreenWallpaperView != nil && self.lockScreenBgView != nil && self.homeScreenBgView != nil && sharedInstance.sharedWallpaperView == nil)  {
+            if ([self boolForKey:@"kLockscreenEnabled"]) {
+                CALayer *nLayer = [self weatherEffectsLayerForWeatherView:self.lockScreenBgView];
+                [sharedInstance.lockscreenWallpaperView.layer addSublayer:nLayer];
+            }
+            if ([self boolForKey:@"kHomescreenEnabled"]) {
+                CALayer *nLayer = [self weatherEffectsLayerForWeatherView:self.homeScreenBgView]; 
+                [sharedInstance.homescreenWallpaperView.layer addSublayer:nLayer];
+            }
+        }
+    }
+}
+
+- (CALayer *)weatherEffectsLayerForWeatherView:(WUIDynamicWeatherBackground *)weatherView {
+	CALayer *nLayer = weatherView != nil ? weatherView.condition.layer : self.sharedBgView.condition.layer;
+	nLayer.bounds = UIScreen.mainScreen.nativeBounds;
+	nLayer.allowsGroupOpacity = YES;
+	nLayer.position = CGPointMake(0, UIScreen.mainScreen.bounds.size.height);
+	nLayer.geometryFlipped = YES;
+
+	return nLayer;
 }
 
 - (void)updateModel {
@@ -37,6 +170,19 @@
 		if (self.todayUpdateModel.forecastModel.city) {
 			self.myCity = self.todayUpdateModel.forecastModel.city;
 			[self.todayUpdateModel setIsLocationTrackingEnabled:NO];
+
+            if (self.sharedBgView != nil) {
+                [self.sharedBgView setCity:[self myCity] animate:YES];
+                self.sharedBgView.condition.city = [self myCity];
+            }
+            if (self.lockScreenBgView != nil) {
+                [self.lockScreenBgView setCity:[self myCity] animate:YES];
+                self.lockScreenBgView.condition.city = [self myCity];
+            }
+            if (self.homeScreenBgView != nil) {
+                [self.homeScreenBgView setCity:[self myCity] animate:YES];
+                self.homeScreenBgView.condition.city = [self myCity];
+            }
 		}
 	}];
 }
@@ -68,6 +214,7 @@
     return infoDict;
 }
 
+
 - (int)currentConditionCode {
     if (self.todayUpdateModel != nil && self.todayUpdateModel.forecastModel.currentConditions != nil) {
         int conditionCode = (int)self.todayUpdateModel.forecastModel.currentConditions.conditionCode;
@@ -95,5 +242,4 @@
 
     return attrString;
 }
-
 @end

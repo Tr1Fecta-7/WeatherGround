@@ -2,61 +2,11 @@
 #include <time.h>
 #include "Tweak.h"
 
-UIImage *newImage;
-CALayer *LSLayer;
-
 BOOL kTweakEnabled;
 BOOL kUseEntireWeatherView;
 BOOL kUseWeatherEffectsOnly;
 BOOL kEnableStatusBarTemperature;
 NSString *kTemperatureUnit;
-
-//BOOL kLockscreenEnabled;
-//BOOL kHomescreenEnabled;
-
-%hook SBIconImageView
-
-%property (nonatomic, strong) WUIDynamicWeatherBackground *bgView; 
-
-- (instancetype)initWithFrame:(CGRect)frame {
-	if ((self = %orig)) {
-	}
-	return self;
-}
-
-- (void)didMoveToWindow {
-	%orig;
-
-	if ([((SBLeafIcon *)self.icon).applicationBundleID isEqualToString:@"com.apple.weather"]) {
-		/*RLog(@"make weather icon");
-		UIImage *image = [WeatherImageLoader conditionImageWithConditionIndex:30 style:0];
-		UIImageView *imgView = [[UIImageView alloc] initWithImage:image];
-		imgView.backgroundColor = UIColor.clearColor;
-		imgView.frame = self.frame;
-		[self addSubview:imgView];*/
-		RLog(@"name: %@", ((SBLeafIcon *)self.icon).applicationBundleID);
-	}
-}
-
-
-%end
-
-%hook SBFWallpaperView
-
--(void)didMoveToWindow {
-	%orig;
-
-	if (kUseEntireWeatherView) {
-		if ([((UIImageView *)self.contentView) respondsToSelector:@selector(setImage:)]) {
-			((UIImageView *)self.contentView).image = newImage;	
-		}
-	}	
-	else if (kUseWeatherEffectsOnly) {
-		[self.contentView.layer addSublayer:LSLayer];
-	}
-}
-
-%end
 
 %group TimeStatusBar
 
@@ -69,12 +19,21 @@ NSString *kTemperatureUnit;
 	return self;
 }
 
+- (void)didMoveToWindow {
+	%orig;
+	
+	if ([[self _viewControllerForAncestor] isKindOfClass:%c(SBMainDisplaySceneLayoutViewController)] && kEnableStatusBarTemperature) {
+		// Set the status string view for the status bar in apps
+		[[WeatherGroundServer sharedServer] setStatusStringView:self];
+	}
+}
+
 %new
 - (void)setTemperatureWithNotification:(NSNotification *)notification {
 	if ([notification.name isEqualToString:@"wgSetTemperatureNotification"]) {
 		NSMutableAttributedString *temperatureAttrString = [[[WeatherGroundServer sharedServer] temperatureInfo:kTemperatureUnit] objectForKey:@"weatherString"];
 		[self changeLabelTextWithAttributedString:temperatureAttrString];
-			
+
 		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
 			// Get current local time
 			time_t curtime;
@@ -85,8 +44,11 @@ NSString *kTemperatureUnit;
 			char currentTime[8];
 			// Get the hour and minute out of our timeInfo struct
 			strftime(currentTime, 8, "%H:%M", timeInfo);
-				[self changeLabelText:[[NSString alloc] initWithUTF8String:currentTime]];
-			});
+	
+			NSString *currentStatusTime = ((_UIStatusBar *)self.superview.superview).currentAggregatedData.timeEntry.stringValue ?: [[NSString alloc] initWithUTF8String:currentTime];
+			self.attributedText = nil;
+			[self changeLabelText:currentStatusTime];
+		});
 	}
 }
 
@@ -116,8 +78,6 @@ NSString *kTemperatureUnit;
 
 %end
 
-%end // End of TimeStatusBar
-
 %hook _UIStatusBarForegroundView
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -125,6 +85,7 @@ NSString *kTemperatureUnit;
 	CGPoint location = [[[event allTouches] anyObject] locationInView:self];
 	if (location.x <= 105.0) {
 		if (kEnableStatusBarTemperature) {
+			// Handled in SpringBoard
 			[[NSNotificationCenter defaultCenter] postNotificationName:@"wgSetTemperatureNotification" object:nil userInfo:nil];
 		}
 	}
@@ -138,61 +99,42 @@ NSString *kTemperatureUnit;
 	%orig;
 	if (tapAction.type == 0 && tapAction.xPosition <= 105.0) {
 		if (kEnableStatusBarTemperature) {
-			[[NSNotificationCenter defaultCenter] postNotificationName:@"wgSetTemperatureNotification" object:nil userInfo:nil];
+			MRYIPCCenter *center = [MRYIPCCenter centerNamed:@"com.tr1fecta.WeatherGroundServer"];
+			[center callExternalVoidMethod:@selector(setStatusBarTextToWeatherInfo:) withArguments:@{@"unit": kTemperatureUnit}];
 		}
-		
 	}
 }
 %end
 
-%hook SBFStaticWallpaperView 
+%end // End of TimeStatusBar
 
-%property (nonatomic, strong) WUIDynamicWeatherBackground *bgView; 
+%hook SBFWallpaperView
 
-- (instancetype)initWithFrame:(CGRect)arg1 configuration:(id)arg2 variant:(long long)arg3 cacheGroup:(id)arg4 delegate:(id)arg5 options:(unsigned long long)arg6 {
-	if ((self = %orig)) {
-		
-	}
-	return self;
-}
-
-- (void)didMoveToWindow {
+-(void)didMoveToWindow {
 	%orig;
 
-	RLog(@"did move to window");
-
-	if (self.bgView == nil) {
-
-		self.bgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:self.frame];
-		self.bgView.city = [[WeatherGroundServer sharedServer] myCity];
-		self.bgView.condition.city = [[WeatherGroundServer sharedServer] myCity];
-
-		if (kUseEntireWeatherView) {
-			[self addSubview:self.bgView];
-			UIGraphicsBeginImageContextWithOptions(self.bgView.bounds.size, NO, UIScreen.mainScreen.scale);
-			[self.bgView drawViewHierarchyInRect:self.bgView.bounds afterScreenUpdates:YES];
-			newImage = UIGraphicsGetImageFromCurrentImageContext();
-			UIGraphicsEndImageContext();
+	if (kUseEntireWeatherView) {
+		if ([((UIImageView *)self.contentView) respondsToSelector:@selector(setImage:)]) {
+			((UIImageView *)self.contentView).image = [[WeatherGroundServer sharedServer] sharedImage];	
 		}
-		else if (kUseWeatherEffectsOnly) {
-			CALayer *nLayer = [self weatherEffectsLayer];
-			[self.layer addSublayer:nLayer];
-			LSLayer = [[CALayer alloc] initWithLayer:nLayer];
-		}
-	}
+	}	
 }
 
-%new
-- (CALayer *)weatherEffectsLayer {
-	CALayer *nLayer = self.bgView.condition.layer;
-	nLayer.bounds = UIScreen.mainScreen.nativeBounds;
-	nLayer.allowsGroupOpacity = YES;
-	nLayer.position = CGPointMake(0, UIScreen.mainScreen.bounds.size.height);
-	nLayer.geometryFlipped = YES;
-
-	return nLayer;
-}
 %end
+
+%hook SpringBoard
+
+-(void)applicationDidFinishLaunching:(id)application {
+	%orig;
+
+	// Setup the dynamic views and effect layers
+	[[WeatherGroundServer sharedServer] setupDynamicWeatherBackgrounds];
+	[[WeatherGroundServer sharedServer] setupWeatherEffectLayers];
+}
+
+%end
+
+
 
 
 %ctor {
@@ -206,11 +148,11 @@ NSString *kTemperatureUnit;
 	}
 
 	NSDictionary *plistDict = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
-	//RLog(@"plist %@", plistDict);
 	if (plistDict != nil) {
 		kTweakEnabled = [plistDict objectForKey:@"kTweakEnabled"] ? [[plistDict objectForKey:@"kTweakEnabled"] boolValue] : NO;
 		kUseEntireWeatherView = [plistDict objectForKey:@"kUseEntireWeatherView"] ? [[plistDict objectForKey:@"kUseEntireWeatherView"] boolValue] : NO;
 		kUseWeatherEffectsOnly = [plistDict objectForKey:@"kUseWeatherEffectsOnly"] ? [[plistDict objectForKey:@"kUseWeatherEffectsOnly"] boolValue] : NO;
+
 		kEnableStatusBarTemperature = [plistDict objectForKey:@"kEnableStatusBarTemperature"] ? [[plistDict objectForKey:@"kEnableStatusBarTemperature"] boolValue] : NO;
 		kTemperatureUnit = [plistDict objectForKey:@"kTemperatureUnit"] ? [[plistDict objectForKey:@"kTemperatureUnit"] stringValue] : @"celsius";
 
@@ -221,7 +163,6 @@ NSString *kTemperatureUnit;
 			%init;
 
 			[WeatherGroundServer sharedServer];
-			
 		}
 		
 	}

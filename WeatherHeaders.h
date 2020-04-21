@@ -72,6 +72,7 @@
 @property (nonatomic,retain) WUIGradientLayer *gradientLayer; 
 
 - (id)initWithFrame:(CGRect)arg1 ;
+-(void)setCity:(id)arg1 animate:(BOOL)arg2 ;
 - (void)setCity:(id)arg1 ;
 @end
 
@@ -94,7 +95,6 @@
 
 @interface _UIStatusBarForegroundView : UIView 
 @property (strong, nonatomic) NSString *temperature;
-- (void)postNeedTemperatureNotification;
 @end
 
 @interface _UIStatusBarStringView : UILabel
@@ -104,8 +104,31 @@
 - (void)changeLabelTextWithAttributedString:(NSMutableAttributedString *)text;
 @end
 
+@interface _UIStatusBarDataStringEntry : NSObject  
+@property (nonatomic,copy) NSString * stringValue;
+@end
+
+@interface _UIStatusBarData : NSObject
+@property (nonatomic,copy) _UIStatusBarDataStringEntry * timeEntry;  
+@end
+
+@interface _UIStatusBar : UIView
+@property (nonatomic,readonly) _UIStatusBarData * currentAggregatedData;  
+@end
+
+@interface NSObject (WG)
+-(id)safeValueForKey:(id)arg1;
+@end
+
 @interface SBFWallpaperView (Private)
 @property (nonatomic,retain) UIView * contentView;     
+@end
+
+@interface SBWallpaperController : NSObject
+@property (nonatomic,retain) SBFWallpaperView * lockscreenWallpaperView;
+@property (nonatomic,retain) SBFWallpaperView * homescreenWallpaperView;
+@property (nonatomic,retain) SBFWallpaperView * sharedWallpaperView;
++(id)sharedInstance;
 @end
 
 
