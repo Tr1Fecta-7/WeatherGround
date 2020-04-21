@@ -166,15 +166,27 @@
 
             if (self.sharedBgView != nil) {
                 [self.sharedBgView setCity:[self myCity] animate:YES];
-                self.sharedBgView.condition.city = [self myCity];
+                [self.sharedBgView.condition setCity:[self myCity] animationDuration:2];
+                
+                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                    [self setupWeatherEffectLayers];
+                }
             }
             if (self.lockScreenBgView != nil) {
                 [self.lockScreenBgView setCity:[self myCity] animate:YES];
-                self.lockScreenBgView.condition.city = [self myCity];
+                [self.lockScreenBgView.condition setCity:[self myCity] animationDuration:2];
+
+                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                    [self setupWeatherEffectLayers];
+                }
             }
             if (self.homeScreenBgView != nil) {
                 [self.homeScreenBgView setCity:[self myCity] animate:YES];
-                self.homeScreenBgView.condition.city = [self myCity];
+                [self.homeScreenBgView.condition setCity:[self myCity] animationDuration:2];
+
+                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                    [self setupWeatherEffectLayers];
+                }
             }
 		}
 	}];
@@ -186,6 +198,7 @@
 
 - (NSDictionary *)temperatureInfo:(NSString *)unit {
     [self updateModel];
+    //[[WeatherGroundServer sharedServer] setupWeatherEffectLayers];
 
 	int temperature = 0;
 

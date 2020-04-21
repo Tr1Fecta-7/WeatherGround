@@ -1,0 +1,10 @@
+Package: com.tr1fecta.weatherground
+Name: WeatherGround
+Depends: mobilesubstrate, com.muirey03.libmryipc
+Architecture: iphoneos-arm
+Description: Bring the Weather's app background to your wallpaper!
+Maintainer: Tr1Fecta
+Author: Tr1Fecta
+Section: Tweaks
+Version: 1.0
+Installed-Size: 248

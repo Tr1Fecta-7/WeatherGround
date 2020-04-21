@@ -11,6 +11,9 @@
 @interface WUIWeatherCondition : NSObject <CALayerDelegate>
 @property (assign,nonatomic) City *city;
 @property (nonatomic,readonly) CALayer *layer;
+-(void)setCity:(id)arg1 animationDuration:(double)arg2 ;
+-(void)setAlpha:(double)arg1 animationDuration:(double)arg2;
+-(void)resume;
 @end
 
 @interface WUIGradientLayer : CAGradientLayer {
@@ -74,6 +77,8 @@
 - (id)initWithFrame:(CGRect)arg1 ;
 -(void)setCity:(id)arg1 animate:(BOOL)arg2 ;
 - (void)setCity:(id)arg1 ;
+-(void)setCity:(id)arg1 animationDuration:(double)arg2 ;
+-(CALayer *)rootLayer;
 @end
 
 

@@ -115,9 +115,9 @@ NSString *kTemperatureUnit;
 
 %end
 
-%hook SpringBoard
+%hook LockScreenVC
 
--(void)applicationDidFinishLaunching:(id)application {
+-(void)viewDidLoad {
 	%orig;
 
 	// Setup the dynamic views and effect layers
@@ -126,8 +126,6 @@ NSString *kTemperatureUnit;
 }
 
 %end
-
-
 
 
 %ctor {
@@ -148,15 +146,25 @@ NSString *kTemperatureUnit;
 
 		kEnableStatusBarTemperature = [plistDict objectForKey:@"kEnableStatusBarTemperature"] ? [[plistDict objectForKey:@"kEnableStatusBarTemperature"] boolValue] : NO;
 		kTemperatureUnit = [plistDict objectForKey:@"kTemperatureUnit"] ? [[plistDict objectForKey:@"kTemperatureUnit"] stringValue] : @"celsius";
-
+		
 		if (kTweakEnabled) {
 			if (kEnableStatusBarTemperature) {
 				%init(TimeStatusBar);
 			}
-			%init;
 
+			if ([NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
+				Class LockScreenVCClass;
+				if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"13.0")) {
+					LockScreenVCClass = %c(CSCoverSheetViewController);
+				}
+				else {
+					LockScreenVCClass = %c(SBDashBoardViewController);
+				}
+				%init(LockScreenVC=LockScreenVCClass);
+
+				
+			}
 			[WeatherGroundServer sharedServer];
 		}
-		
 	}
 }
