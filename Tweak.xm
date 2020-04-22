@@ -129,45 +129,65 @@ NSString *kTemperatureUnit;
 
 
 %ctor {
-	NSString *args = NSProcessInfo.processInfo.arguments[0];
-	if (![args containsString:@"SpringBoard"] && ![args containsString:@"/Application"]) {
-		return;
-	}
+	// Code stolen from https://www.reddit.com/r/jailbreak/comments/4yz5v5/questionremote_messages_not_enabling/d6rlh88/ 
+	// make sure it doesn't load in unneeded processes, otherwise respring loops :/
+	BOOL shouldLoad = NO;
+    NSArray *args = [[NSClassFromString(@"NSProcessInfo") processInfo] arguments];
+    NSUInteger count = args.count;
+    if (count != 0) {
+        NSString *executablePath = args[0];
+        if (executablePath) {
+            NSString *processName = [executablePath lastPathComponent];
+            BOOL isSpringBoard = [processName isEqualToString:@"SpringBoard"];
+            BOOL isApplication = [executablePath rangeOfString:@"/Application/"].location != NSNotFound || [executablePath rangeOfString:@"/Applications/"].location != NSNotFound;
+            BOOL isFileProvider = [[processName lowercaseString] rangeOfString:@"fileprovider"].location != NSNotFound;
+            BOOL skip = [processName isEqualToString:@"AdSheet"]
+                    || [processName isEqualToString:@"CoreAuthUI"]
+                    || [processName isEqualToString:@"InCallService"]
+                    || [processName isEqualToString:@"MessagesNotificationViewService"]
+                    || [executablePath rangeOfString:@".appex/"].location != NSNotFound;
+            if (!isFileProvider && (isSpringBoard || isApplication) && !skip) {
+                shouldLoad = YES;
+            }
+        }
+    }
 
-	NSBundle *wUIBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/WeatherUI.framework"];
-	NSBundle *wBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/Weather.framework"];
-	if (!wUIBundle.loaded) {
-		[wUIBundle load];
-	}
-	if (!wBundle.loaded) {
-		[wBundle load];
-	}
+	if (shouldLoad) {
+		NSBundle *wUIBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/WeatherUI.framework"];
+		NSBundle *wBundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/Weather.framework"];
+		if (!wUIBundle.loaded) {
+			[wUIBundle load];
+		}
+		if (!wBundle.loaded) {
+			[wBundle load];
+		}
 
-	NSDictionary *plistDict = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
-	if (plistDict != nil) {
-		kTweakEnabled = [plistDict objectForKey:@"kTweakEnabled"] ? [[plistDict objectForKey:@"kTweakEnabled"] boolValue] : NO;
-		kUseEntireWeatherView = [plistDict objectForKey:@"kUseEntireWeatherView"] ? [[plistDict objectForKey:@"kUseEntireWeatherView"] boolValue] : NO;
-		kUseWeatherEffectsOnly = [plistDict objectForKey:@"kUseWeatherEffectsOnly"] ? [[plistDict objectForKey:@"kUseWeatherEffectsOnly"] boolValue] : NO;
+		NSDictionary *plistDict = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
+		if (plistDict != nil) {
+			kTweakEnabled = [plistDict objectForKey:@"kTweakEnabled"] ? [[plistDict objectForKey:@"kTweakEnabled"] boolValue] : NO;
+			kUseEntireWeatherView = [plistDict objectForKey:@"kUseEntireWeatherView"] ? [[plistDict objectForKey:@"kUseEntireWeatherView"] boolValue] : NO;
+			kUseWeatherEffectsOnly = [plistDict objectForKey:@"kUseWeatherEffectsOnly"] ? [[plistDict objectForKey:@"kUseWeatherEffectsOnly"] boolValue] : NO;
 
-		kEnableStatusBarTemperature = [plistDict objectForKey:@"kEnableStatusBarTemperature"] ? [[plistDict objectForKey:@"kEnableStatusBarTemperature"] boolValue] : NO;
-		kTemperatureUnit = [plistDict objectForKey:@"kTemperatureUnit"] ? [[plistDict objectForKey:@"kTemperatureUnit"] stringValue] : @"celsius";
-		
-		if (kTweakEnabled) {
-			if (kEnableStatusBarTemperature) {
-				%init(TimeStatusBar);
-			}
-
-			if ([NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
-				Class LockScreenVCClass;
-				if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"13.0")) {
-					LockScreenVCClass = %c(CSCoverSheetViewController);
+			kEnableStatusBarTemperature = [plistDict objectForKey:@"kEnableStatusBarTemperature"] ? [[plistDict objectForKey:@"kEnableStatusBarTemperature"] boolValue] : NO;
+			kTemperatureUnit = [plistDict objectForKey:@"kTemperatureUnit"] ? [[plistDict objectForKey:@"kTemperatureUnit"] stringValue] : @"celsius";
+			
+			if (kTweakEnabled) {
+				if (kEnableStatusBarTemperature) {
+					%init(TimeStatusBar);
 				}
-				else {
-					LockScreenVCClass = %c(SBDashBoardViewController);
+
+				if ([NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
+					Class LockScreenVCClass;
+					if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"13.0")) {
+						LockScreenVCClass = %c(CSCoverSheetViewController);
+					}
+					else {
+						LockScreenVCClass = %c(SBDashBoardViewController);
+					}
+					%init(LockScreenVC=LockScreenVCClass);
 				}
-				%init(LockScreenVC=LockScreenVCClass);
+				[WeatherGroundServer sharedServer];
 			}
-			[WeatherGroundServer sharedServer];
 		}
 	}
 }

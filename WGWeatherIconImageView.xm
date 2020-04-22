@@ -1,6 +1,7 @@
 #import "Tweak.h"
 
-
+// Will come later
+/*
 %subclass WGWeatherIconImageView : SBIconImageView
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -11,4 +12,4 @@
 }
 
 
-%end
+%end*/

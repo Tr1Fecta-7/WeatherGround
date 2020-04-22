@@ -3,7 +3,7 @@ Name: WeatherGround
 Depends: mobilesubstrate, com.muirey03.libmryipc
 Version: 1.0
 Architecture: iphoneos-arm
-Description: Bring the Weather's app background to your wallpaper!
+Description: Weather right at your fingertips!
 Maintainer: Tr1Fecta
 Author: Tr1Fecta
 Section: Tweaks
