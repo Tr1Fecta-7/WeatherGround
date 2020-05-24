@@ -51,8 +51,10 @@
         [self changeLabelTextWithAttributedString:temperatureAttrString];
 
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            NSDateFormatter *formatter = [NSDateFormatter new];
-			formatter.dateFormat = @"HH:mm";
+            		NSString *format = [NSDateFormatter dateFormatFromTemplate:@"j" options:0 locale:[NSLocale currentLocale]];
+            		BOOL is24Hour = ([format rangeOfString:@"a"].location == NSNotFound);
+            		NSDateFormatter *formatter = [NSDateFormatter new];
+			formatter.dateFormat = [NSString stringWithFormat:@"%@:mm", (is24Hour ? "HH" : "hh")];
 			NSString *currentStatusTime = [formatter stringFromDate:[NSDate now]];
 
 			self.statusStringView.attributedText = nil;
