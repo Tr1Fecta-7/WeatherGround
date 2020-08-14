@@ -2,6 +2,7 @@
 
 @interface WeatherGroundServer : NSObject
 
+
 @property (nonatomic, strong) WUIDynamicWeatherBackground *lockScreenBgView;
 @property (nonatomic, strong) WUIDynamicWeatherBackground *homeScreenBgView;
 @property (nonatomic, strong) WUIDynamicWeatherBackground *sharedBgView;
@@ -9,7 +10,7 @@
 @property (nonatomic, strong) UIImage *sharedImage;
 @property (nonatomic, strong) NSDictionary *preferencesDictionary; 
 
-@property (nonatomic, strong) WATodayAutoupdatingLocationModel *todayUpdateModel;
+@property (nonatomic, strong) WALockscreenWidgetViewController *widgetVC;
 @property (nonatomic, strong) City *myCity; 
 @property (nonatomic, strong) NSTimer *autoUpdateTimer;
 
@@ -24,6 +25,9 @@
 
 - (void)setupDynamicWeatherBackgrounds;
 - (void)setupWeatherEffectLayers;
+
+- (void)pauseWG;
+- (void)resumeWG;
 
 - (BOOL)boolForKey:(NSString *)key;
 - (int)intForKey:(NSString *)key;

@@ -1,4 +1,4 @@
-#include <RemoteLog.h>
+//#include <RemoteLog.h>
 #include <time.h>
 #include "Tweak.h"
 
@@ -35,8 +35,17 @@ NSString *kTemperatureUnit;
 		[self changeLabelTextWithAttributedString:temperatureAttrString];
 
 		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-			NSDateFormatter *formatter = [NSDateFormatter new];
-			formatter.dateFormat = @"HH:mm";
+			NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+			[formatter setLocale:[NSLocale currentLocale]];
+    		[formatter setTimeStyle:NSDateFormatterShortStyle];
+			
+			NSRange amRange = [[formatter stringFromDate:[NSDate now]] rangeOfString:[formatter AMSymbol]];
+			NSRange pmRange = [[formatter stringFromDate:[NSDate now]] rangeOfString:[formatter PMSymbol]];
+			
+			BOOL is24h = (amRange.location == NSNotFound && pmRange.location == NSNotFound);
+			
+			[formatter setDateFormat:is24h ? @"HH:mm" : @"hh:mm"];
+
 			NSString *currentStatusTime = [formatter stringFromDate:[NSDate now]];
 
 			self.attributedText = nil;
@@ -121,11 +130,43 @@ NSString *kTemperatureUnit;
 	%orig;
 
 	// Setup the dynamic views and effect layers
+	[[WeatherGroundServer sharedServer] updateModel];
 	[[WeatherGroundServer sharedServer] setupDynamicWeatherBackgrounds];
 	[[WeatherGroundServer sharedServer] setupWeatherEffectLayers];
+	
 }
 
 %end
+
+%hook SpringBoard 
+
+- (void)frontDisplayDidChange:(SBApplication *)application {
+	%orig;
+
+	if (kTweakEnabled) {
+		// If the display changed to an app, pause the view and resume it when in SpringBoard
+		if (application) {
+			[[WeatherGroundServer sharedServer] pauseWG];
+		} else {
+			[[WeatherGroundServer sharedServer] resumeWG];
+		}
+	}
+	
+}
+
+%end
+
+ 
+static void updateWGState(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+	[[WeatherGroundServer sharedServer] updateModel];
+
+	BOOL screenOn = [[[%c(SBLockScreenManager) sharedInstance] valueForKey:@"_isScreenOn"] boolValue];
+    if (screenOn) {
+		[[WeatherGroundServer sharedServer] resumeWG];
+    } else {
+        [[WeatherGroundServer sharedServer] pauseWG];
+    }
+}
 
 
 %ctor {
@@ -180,13 +221,14 @@ NSString *kTemperatureUnit;
 					Class LockScreenVCClass;
 					if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"13.0")) {
 						LockScreenVCClass = %c(CSCoverSheetViewController);
-					}
-					else {
+					} else {
 						LockScreenVCClass = %c(SBDashBoardViewController);
 					}
 					%init(LockScreenVC=LockScreenVCClass);
+				
+					[WeatherGroundServer sharedServer];
+					CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, updateWGState, CFSTR("com.apple.springboard.screenchanged"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 				}
-				[WeatherGroundServer sharedServer];
 			}
 		}
 	}

@@ -5,6 +5,8 @@
 #include <SpringBoardFoundation/SBFStaticWallpaperView.h>
 #include <SpringBoard/SBCoverSheetPanelBackgroundContainerView.h>
 #include <SpringBoard/SBWallpaperEffectView.h>
+#include <SpringBoard/SBApplication.h>
+#include <SpringBoard/SBLockScreenManager.h>
 
 
 
@@ -14,6 +16,7 @@
 -(void)setCity:(id)arg1 animationDuration:(double)arg2 ;
 -(void)setAlpha:(double)arg1 animationDuration:(double)arg2;
 -(void)resume;
+-(void)pause;
 @end
 
 @interface WUIGradientLayer : CAGradientLayer {
@@ -134,6 +137,18 @@
 @property (nonatomic,retain) SBFWallpaperView * homescreenWallpaperView;
 @property (nonatomic,retain) SBFWallpaperView * sharedWallpaperView;
 +(id)sharedInstance;
+@end
+
+@interface WALockscreenWidgetViewController : UIViewController
+@property (nonatomic, strong) WATodayModel *todayModel;
++ (WALockscreenWidgetViewController *)sharedInstanceIfExists;
+- (id)_temperature;
+- (id)_locationName;
+- (void)updateWeather;
+- (void)_updateTodayView;
+- (void)_updateWithReason:(id)reason;
+- (void)_setupWeatherModel;
+- (void)todayModelWantsUpdate:(WATodayModel *)todayModel;
 @end
 
 

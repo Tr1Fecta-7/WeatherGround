@@ -1,5 +1,5 @@
 #import "WeatherGroundServer.h"
-#import <RemoteLog.h>
+//#import <RemoteLog.h>
 
 @implementation WeatherGroundServer {
     MRYIPCCenter* _center;
@@ -30,8 +30,6 @@
         _center = [MRYIPCCenter centerNamed:@"com.tr1fecta.WeatherGroundServer"];
         [_center addTarget:self action:@selector(setStatusBarTextToWeatherInfo:)];
         _preferencesDictionary =  [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
-        
-        [self updateModel];
 
         // Convert to minutes from seconds
         double interval = (double)[self intForKey:@"kAutoUpdateInterval"] * 60;
@@ -52,6 +50,7 @@
 
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             NSDateFormatter *formatter = [NSDateFormatter new];
+            formatter.timeZone = [NSTimeZone localTimeZone];
 			formatter.dateFormat = @"HH:mm";
 			NSString *currentStatusTime = [formatter stringFromDate:[NSDate now]];
 
@@ -154,42 +153,91 @@
 }
 
 - (void)updateModel {
-    WeatherPreferences *wPrefs = [%c(WeatherPreferences) sharedPreferences];
-	self.todayUpdateModel = [%c(WATodayAutoupdatingLocationModel) autoupdatingLocationModelWithPreferences:wPrefs effectiveBundleIdentifier:@"com.apple.weather"];
-	[self.todayUpdateModel setLocationServicesActive:YES];
-	[self.todayUpdateModel setIsLocationTrackingEnabled:YES];
+     if (!self.widgetVC) {
+        self.widgetVC = [[%c(WALockscreenWidgetViewController) alloc] init];
 
-	[self.todayUpdateModel executeModelUpdateWithCompletion:^(BOOL arg1, NSError *arg2) {
-		if (self.todayUpdateModel.forecastModel.city) {
-			self.myCity = self.todayUpdateModel.forecastModel.city;
-			[self.todayUpdateModel setIsLocationTrackingEnabled:NO];
+        if ([self.widgetVC respondsToSelector:@selector(_setupWeatherModel)]) {
+            [self.widgetVC _setupWeatherModel];
+        }
+    }
 
-            if (self.sharedBgView != nil) {
-                [self.sharedBgView setCity:[self myCity] animate:YES];
-                [self.sharedBgView.condition setCity:[self myCity] animationDuration:2];
-                
-                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
-                    [self setupWeatherEffectLayers];
-                }
+    if (self.widgetVC) {
+        if ([self.widgetVC respondsToSelector:@selector(todayModelWantsUpdate:)] && self.widgetVC.todayModel) {
+            [self.widgetVC todayModelWantsUpdate:self.widgetVC.todayModel];
+        }
+        if ([self.widgetVC respondsToSelector:@selector(updateWeather)]) {
+            [self.widgetVC updateWeather];
+        }
+        if ([self.widgetVC respondsToSelector:@selector(_updateTodayView)]) {
+		    [self.widgetVC _updateTodayView];
+        }
+        if ([self.widgetVC respondsToSelector:@selector(_updateWithReason:)]) {
+            [self.widgetVC _updateWithReason:nil];
+        }
+        
+        /*if ([self.widgetVC respondsToSelector:@selector(_temperature)]) {
+		    self.currentTemperature = [self.widgetVC _temperature];
+	    }
+
+        if ([self.widgetVC respondsToSelector:@selector(_locationName)]) {
+		    self.myCity = [self.widgetVC _locationName];
+	    }*/
+    }
+
+
+   if (self.widgetVC.todayModel.forecastModel.city) {
+        self.myCity = self.widgetVC.todayModel.forecastModel.city;
+
+        if (self.sharedBgView != nil) {
+            [self.sharedBgView setCity:[self myCity] animate:YES];
+            [self.sharedBgView.condition setCity:[self myCity] animationDuration:2];
+            
+            if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                [self setupWeatherEffectLayers];
             }
-            if (self.lockScreenBgView != nil) {
-                [self.lockScreenBgView setCity:[self myCity] animate:YES];
-                [self.lockScreenBgView.condition setCity:[self myCity] animationDuration:2];
+        }
+        if (self.lockScreenBgView != nil) {
+            [self.lockScreenBgView setCity:[self myCity] animate:YES];
+            [self.lockScreenBgView.condition setCity:[self myCity] animationDuration:2];
 
-                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
-                    [self setupWeatherEffectLayers];
-                }
+            if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                [self setupWeatherEffectLayers];
             }
-            if (self.homeScreenBgView != nil) {
-                [self.homeScreenBgView setCity:[self myCity] animate:YES];
-                [self.homeScreenBgView.condition setCity:[self myCity] animationDuration:2];
+        }
+        if (self.homeScreenBgView != nil) {
+            [self.homeScreenBgView setCity:[self myCity] animate:YES];
+            [self.homeScreenBgView.condition setCity:[self myCity] animationDuration:2];
 
-                if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
-                    [self setupWeatherEffectLayers];
-                }
+            if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+                [self setupWeatherEffectLayers];
             }
-		}
-	}];
+        }
+    }
+}
+
+- (void)pauseWG {
+    if (self.sharedBgView != nil) {
+        [self.sharedBgView.condition pause];
+    }
+    if (self.lockScreenBgView != nil) {
+        [self.lockScreenBgView.condition pause];
+    }
+    if (self.homeScreenBgView != nil) {
+        [self.homeScreenBgView.condition pause];
+    }
+}
+
+- (void)resumeWG {
+    if (self.sharedBgView != nil) {
+        [self.sharedBgView.condition resume];
+    }
+    if (self.lockScreenBgView != nil) {
+        [self.lockScreenBgView.condition resume];
+        
+    }
+    if (self.homeScreenBgView != nil) {
+        [self.homeScreenBgView.condition resume];
+    }
 }
 
 - (void)updateCityForCity:(City *)city {
@@ -198,19 +246,18 @@
 
 - (NSDictionary *)temperatureInfo:(NSString *)unit {
     [self updateModel];
-    //[[WeatherGroundServer sharedServer] setupWeatherEffectLayers];
 
 	int temperature = 0;
 
-    if (self.todayUpdateModel != nil && self.todayUpdateModel.forecastModel.currentConditions != nil) {
+    if (self.widgetVC != nil && self.widgetVC.todayModel.forecastModel.currentConditions != nil) {
         if ([unit isEqualToString:@"celsius"]) {
-            temperature = (int)self.todayUpdateModel.forecastModel.currentConditions.temperature.celsius;
+            temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.celsius;
         }
         else if ([unit isEqualToString:@"fahrenheit"]) {
-            temperature = (int)self.todayUpdateModel.forecastModel.currentConditions.temperature.fahrenheit;
+            temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.fahrenheit;
         }
         else if ([unit isEqualToString:@"kelvin"])  {
-            temperature = (int)self.todayUpdateModel.forecastModel.currentConditions.temperature.kelvin;
+            temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.kelvin;
         }
     }
 
@@ -222,8 +269,8 @@
 
 
 - (int)currentConditionCode {
-    if (self.todayUpdateModel != nil && self.todayUpdateModel.forecastModel.currentConditions != nil) {
-        int conditionCode = (int)self.todayUpdateModel.forecastModel.currentConditions.conditionCode;
+    if (self.widgetVC != nil && self.widgetVC.todayModel.forecastModel.currentConditions != nil) {
+        int conditionCode = (int)self.widgetVC.todayModel.forecastModel.currentConditions.conditionCode;
 	    return conditionCode;
     }
     return 0;

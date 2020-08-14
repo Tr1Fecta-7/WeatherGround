@@ -1,6 +1,7 @@
-include $(THEOS)/makefiles/common.mk
-
+export TARGET = iphone:clang:13.3:11.0
 ARCHS = arm64 arm64e
+
+include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = WeatherGround
 
@@ -10,6 +11,7 @@ WeatherGround_FRAMEWORKS = CoreLocation
 WeatherGround_LIBRARIES = mryipc
 WeatherGround_PRIVATE_FRAMEWORKS = SpringBoardFoundation Weather WeatherUI
 WeatherGround_LDFLAGS = $(THEOS)/sdks/iPhoneOS13.3.sdk/System/Library/PrivateFrameworks/WeatherUI.framework/WeatherUI.tbd
+
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += wgprefs
