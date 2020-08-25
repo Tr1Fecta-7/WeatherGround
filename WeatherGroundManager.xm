@@ -154,6 +154,7 @@
 
         if ([self.widgetVC respondsToSelector:@selector(_setupWeatherModel)]) {
             [self.widgetVC _setupWeatherModel];
+            
         }
     }
 
