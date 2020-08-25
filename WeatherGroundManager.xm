@@ -1,9 +1,7 @@
-#import "WeatherGroundServer.h"
+#import "WeatherGroundManager.h"
 //#import <RemoteLog.h>
 
-@implementation WeatherGroundServer {
-    MRYIPCCenter* _center;
-}
+@implementation WeatherGroundManager
 
 - (BOOL)boolForKey:(NSString *)key {
     id object = [self.preferencesDictionary objectForKey:key];
@@ -15,20 +13,18 @@
     return object ? [object intValue] : 0;
 }
 
-+ (instancetype)sharedServer {
++ (instancetype)sharedManager {
     static dispatch_once_t onceToken = 0;
-    __strong static WeatherGroundServer *sharedServer = nil;
+    __strong static WeatherGroundManager *sharedManager = nil;
     dispatch_once(&onceToken, ^{
-        sharedServer = [[self alloc] init];
+        sharedManager = [[self alloc] init];
     });
-    return sharedServer;
+    return sharedManager;
 }
 
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _center = [MRYIPCCenter centerNamed:@"com.tr1fecta.WeatherGroundServer"];
-        [_center addTarget:self action:@selector(setStatusBarTextToWeatherInfo:)];
         _preferencesDictionary =  [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.tr1fecta.wgprefs.plist"];
 
         // Convert to minutes from seconds
@@ -254,10 +250,10 @@
             temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.celsius;
         }
         else if ([unit isEqualToString:@"fahrenheit"]) {
-            temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.fahrenheit;
+            temperature = (int)ceil(self.widgetVC.todayModel.forecastModel.currentConditions.temperature.fahrenheit);
         }
         else if ([unit isEqualToString:@"kelvin"])  {
-            temperature = (int)self.widgetVC.todayModel.forecastModel.currentConditions.temperature.kelvin;
+            temperature = (int)ceil(self.widgetVC.todayModel.forecastModel.currentConditions.temperature.kelvin);
         }
     }
 

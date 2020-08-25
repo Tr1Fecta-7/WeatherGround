@@ -1,6 +1,6 @@
 #import "Tweak.h"
 
-@interface WeatherGroundServer : NSObject
+@interface WeatherGroundManager : NSObject
 
 
 @property (nonatomic, strong) WUIDynamicWeatherBackground *lockScreenBgView;
@@ -16,7 +16,7 @@
 
 @property (nonatomic, strong) _UIStatusBarStringView *statusStringView; // In Apps
 
-+ (instancetype)sharedServer;
++ (instancetype)sharedManager;
 
 
 - (void)setStatusBarTextToWeatherInfo:(NSDictionary *)infoDict;

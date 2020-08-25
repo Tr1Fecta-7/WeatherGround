@@ -121,6 +121,7 @@
 @end
 
 @interface _UIStatusBar : UIView
+@property (nonatomic,retain) UIView *foregroundView; 
 @property (nonatomic,readonly) _UIStatusBarData * currentAggregatedData;  
 @end
 
@@ -196,4 +197,10 @@
 - (void)updateLabelColors;
 - (void)updateView;
 
+@end
+
+
+@interface SBMainDisplaySceneLayoutStatusBarView : UIView {
+    _UIStatusBar *_statusBarUnderlyingViewAccessor;
+}
 @end
