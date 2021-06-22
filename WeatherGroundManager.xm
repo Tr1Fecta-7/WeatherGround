@@ -79,13 +79,32 @@
 }
 
 - (void)setupDynamicWeatherBackgrounds {
-    SBWallpaperController *sharedInstance = [%c(SBWallpaperController) sharedInstance];
+    SBWallpaperController *wallpaperController = [%c(SBWallpaperController) sharedInstance];
+    SBFWallpaperView *sharedWallpaperView;
+    SBFWallpaperView *lockscreenWallpaperView;
+	SBFWallpaperView *homescreenWallpaperView;
+
+    if (%c(SBWallpaperViewController)) {
+		SBWallpaperViewController *wallpaperViewController = [wallpaperController valueForKey:@"_wallpaperViewController"];
+		
+		sharedWallpaperView = wallpaperViewController.sharedWallpaperView;
+
+        lockscreenWallpaperView = wallpaperViewController.lockscreenWallpaperView;
+		homescreenWallpaperView = wallpaperViewController.homescreenWallpaperView;
+	}
+	else {
+		sharedWallpaperView = wallpaperController.sharedWallpaperView;
+    
+        lockscreenWallpaperView = wallpaperController.lockscreenWallpaperView;
+		homescreenWallpaperView = wallpaperController.homescreenWallpaperView;
+	}
+
     // Always create this instance for the weather effects layer, but only add if enabled
     self.sharedBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
     self.sharedBgView.city = [self myCity];
     self.sharedBgView.condition.city = [self myCity];
-    if (sharedInstance.sharedWallpaperView != nil && [self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kUseWeatherEffectsOnly"] == NO) {
-        [sharedInstance.sharedWallpaperView addSubview:self.sharedBgView];
+    if (sharedWallpaperView != nil && [self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kUseWeatherEffectsOnly"] == NO) {
+        [sharedWallpaperView addSubview:self.sharedBgView];
 
         // Take a screenshot of the current view, to use on SBFWallpaperView's contentView's image, otherwise the background when pulling up on Notification Center and Lockscreen will be see through
         UIGraphicsBeginImageContextWithOptions(self.sharedBgView.bounds.size, NO, UIScreen.mainScreen.scale);
@@ -95,14 +114,14 @@
     }
    
     // Check if the user is using 2 different wallpapers
-    if (sharedInstance.lockscreenWallpaperView != nil && sharedInstance.homescreenWallpaperView != nil && sharedInstance.sharedWallpaperView == nil) {
+    if (lockscreenWallpaperView != nil && homescreenWallpaperView != nil && sharedWallpaperView == nil) {
         if ([self boolForKey:@"kLockscreenEnabled"]) {
             self.lockScreenBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
             self.lockScreenBgView.city = [self myCity];
             self.lockScreenBgView.condition.city = [self myCity];
 
             if ([self boolForKey:@"kUseEntireWeatherView"]) {
-                [sharedInstance.lockscreenWallpaperView addSubview:self.lockScreenBgView];
+                [lockscreenWallpaperView addSubview:self.lockScreenBgView];
             }
         }
         if ([self boolForKey:@"kHomescreenEnabled"]) {
@@ -111,7 +130,7 @@
             self.homeScreenBgView.condition.city = [self myCity];
             
             if ([self boolForKey:@"kUseEntireWeatherView"]) {
-                [sharedInstance.homescreenWallpaperView addSubview:self.homeScreenBgView];
+                [homescreenWallpaperView addSubview:self.homeScreenBgView];
             }
         }
     }
@@ -119,20 +138,38 @@
 
 - (void)setupWeatherEffectLayers {
     if ([self boolForKey:@"kUseWeatherEffectsOnly"] && [self boolForKey:@"kUseEntireWeatherView"] == NO) {
-        SBWallpaperController *sharedInstance = [%c(SBWallpaperController) sharedInstance];
+        SBWallpaperController *wallpaperController = [%c(SBWallpaperController) sharedInstance];
+        SBFWallpaperView *sharedWallpaperView;
+        SBFWallpaperView *lockscreenWallpaperView;
+        SBFWallpaperView *homescreenWallpaperView;
 
-        if (sharedInstance.sharedWallpaperView != nil && self.sharedBgView != nil) {
-            CALayer *nLayer = [self weatherEffectsLayerForWeatherView:nil];
-			[sharedInstance.sharedWallpaperView.layer addSublayer:nLayer];
+        if (%c(SBWallpaperViewController)) {
+            SBWallpaperViewController *wallpaperViewController = [wallpaperController valueForKey:@"_wallpaperViewController"];
+            
+            sharedWallpaperView = wallpaperViewController.sharedWallpaperView;
+
+            lockscreenWallpaperView = wallpaperViewController.lockscreenWallpaperView;
+            homescreenWallpaperView = wallpaperViewController.homescreenWallpaperView;
         }
-        else if (sharedInstance.lockscreenWallpaperView != nil && sharedInstance.homescreenWallpaperView != nil && self.lockScreenBgView != nil && self.homeScreenBgView != nil && sharedInstance.sharedWallpaperView == nil)  {
+        else {
+            sharedWallpaperView = wallpaperController.sharedWallpaperView;
+        
+            lockscreenWallpaperView = wallpaperController.lockscreenWallpaperView;
+            homescreenWallpaperView = wallpaperController.homescreenWallpaperView;
+        }
+
+        if (sharedWallpaperView != nil && self.sharedBgView != nil) {
+            CALayer *nLayer = [self weatherEffectsLayerForWeatherView:nil];
+			[sharedWallpaperView.layer addSublayer:nLayer];
+        }
+        else if (lockscreenWallpaperView != nil && homescreenWallpaperView != nil && self.lockScreenBgView != nil && self.homeScreenBgView != nil && sharedWallpaperView == nil)  {
             if ([self boolForKey:@"kLockscreenEnabled"]) {
                 CALayer *nLayer = [self weatherEffectsLayerForWeatherView:self.lockScreenBgView];
-                [sharedInstance.lockscreenWallpaperView.layer addSublayer:nLayer];
+                [lockscreenWallpaperView.layer addSublayer:nLayer];
             }
             if ([self boolForKey:@"kHomescreenEnabled"]) {
                 CALayer *nLayer = [self weatherEffectsLayerForWeatherView:self.homeScreenBgView]; 
-                [sharedInstance.homescreenWallpaperView.layer addSublayer:nLayer];
+                [homescreenWallpaperView.layer addSublayer:nLayer];
             }
         }
     }

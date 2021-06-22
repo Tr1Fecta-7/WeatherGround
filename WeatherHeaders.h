@@ -133,6 +133,13 @@
 @property (nonatomic,retain) UIView * contentView;     
 @end
 
+@interface SBWallpaperViewController : NSObject
+@property (nonatomic,retain) SBFWallpaperView *lockscreenWallpaperView;
+@property (nonatomic,retain) SBFWallpaperView *homescreenWallpaperView;
+@property (nonatomic,retain) SBFWallpaperView *sharedWallpaperView;
+- (SBFWallpaperView *)_activeWallpaperView;
+@end
+
 @interface SBWallpaperController : NSObject
 @property (nonatomic,retain) SBFWallpaperView * lockscreenWallpaperView;
 @property (nonatomic,retain) SBFWallpaperView * homescreenWallpaperView;
