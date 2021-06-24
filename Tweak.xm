@@ -1,4 +1,4 @@
-//#include <RemoteLog.h>
+#include <RemoteLog.h>
 #include <time.h>
 #include "Tweak.h"
 
@@ -6,6 +6,8 @@ BOOL kTweakEnabled;
 BOOL kUseEntireWeatherView;
 BOOL kUseWeatherEffectsOnly;
 BOOL kEnableStatusBarTemperature;
+BOOL kLockscreenEnabled;
+BOOL kHomescreenEnabled;
 NSString *kTemperatureUnit;
 
 %group TimeStatusBar
@@ -122,10 +124,12 @@ NSString *kTemperatureUnit;
 -(void)didMoveToWindow {
 	%orig;
 
-	if (kUseEntireWeatherView) {
-		if ([((UIImageView *)self.contentView) respondsToSelector:@selector(setImage:)]) {
-			((UIImageView *)self.contentView).image = [[WeatherGroundManager sharedManager] sharedImage];	
-		}
+	if (kUseEntireWeatherView && [[WeatherGroundManager sharedManager] sharedImage] != nil) {
+		if ((kHomescreenEnabled && [self.variantCacheIdentifier isEqualToString:@"home"]) || (kLockscreenEnabled && [self.variantCacheIdentifier isEqualToString:@"lock"]) || (!kHomescreenEnabled && !kLockscreenEnabled)) {
+			if ([((UIImageView *)self.contentView) respondsToSelector:@selector(setImage:)]) {
+				((UIImageView *)self.contentView).image = [[WeatherGroundManager sharedManager] sharedImage];	
+			}
+		}		
 	}	
 }
 
@@ -191,6 +195,9 @@ static void updateWGState(CFNotificationCenterRef center, void *observer, CFStri
 		kTweakEnabled = [plistDict objectForKey:@"kTweakEnabled"] ? [[plistDict objectForKey:@"kTweakEnabled"] boolValue] : NO;
 		kUseEntireWeatherView = [plistDict objectForKey:@"kUseEntireWeatherView"] ? [[plistDict objectForKey:@"kUseEntireWeatherView"] boolValue] : NO;
 		kUseWeatherEffectsOnly = [plistDict objectForKey:@"kUseWeatherEffectsOnly"] ? [[plistDict objectForKey:@"kUseWeatherEffectsOnly"] boolValue] : NO;
+
+		kLockscreenEnabled = [plistDict objectForKey:@"kLockscreenEnabled"] ? [[plistDict objectForKey:@"kLockscreenEnabled"] boolValue] : NO;
+		kHomescreenEnabled = [plistDict objectForKey:@"kHomescreenEnabled"] ? [[plistDict objectForKey:@"kHomescreenEnabled"] boolValue] : NO;
 
 		kEnableStatusBarTemperature = [plistDict objectForKey:@"kEnableStatusBarTemperature"] ? [[plistDict objectForKey:@"kEnableStatusBarTemperature"] boolValue] : NO;
 		kTemperatureUnit = [plistDict objectForKey:@"kTemperatureUnit"] ? [[plistDict objectForKey:@"kTemperatureUnit"] stringValue] : @"celsius";

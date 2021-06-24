@@ -39,7 +39,7 @@
 -(WFTemperature *)temperature;
 @end
 
-@interface WATodayModel
+@interface WATodayModel : NSObject
 +(id)autoupdatingLocationModelWithPreferences:(id)arg1 effectiveBundleIdentifier:(id)arg2 ;
 -(BOOL)executeModelUpdateWithCompletion:(/*^block*/id)arg1 ;
 @property (nonatomic,retain) WAForecastModel * forecastModel;
@@ -50,6 +50,7 @@
 @interface WATodayAutoupdatingLocationModel : WATodayModel
 -(void)setIsLocationTrackingEnabled:(BOOL)arg1;
 -(void)setLocationServicesActive:(BOOL)arg1;
+-(BOOL)updateLocationTrackingStatus;
 @end
 
 @interface UIStatusBarTapAction : NSObject
@@ -130,6 +131,7 @@
 @end
 
 @interface SBFWallpaperView (Private)
+@property (nonatomic,copy,readonly) NSString * variantCacheIdentifier; 
 @property (nonatomic,retain) UIView * contentView;     
 @end
 
@@ -157,6 +159,7 @@
 - (void)_updateWithReason:(id)reason;
 - (void)_setupWeatherModel;
 - (void)todayModelWantsUpdate:(WATodayModel *)todayModel;
+
 @end
 
 

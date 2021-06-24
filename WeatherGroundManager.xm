@@ -1,5 +1,5 @@
 #import "WeatherGroundManager.h"
-//#import <RemoteLog.h>
+#include <RemoteLog.h>
 
 @implementation WeatherGroundManager
 
@@ -106,11 +106,7 @@
     if (sharedWallpaperView != nil && [self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kUseWeatherEffectsOnly"] == NO) {
         [sharedWallpaperView addSubview:self.sharedBgView];
 
-        // Take a screenshot of the current view, to use on SBFWallpaperView's contentView's image, otherwise the background when pulling up on Notification Center and Lockscreen will be see through
-        UIGraphicsBeginImageContextWithOptions(self.sharedBgView.bounds.size, NO, UIScreen.mainScreen.scale);
-		[self.sharedBgView drawViewHierarchyInRect:self.sharedBgView.bounds afterScreenUpdates:YES];
-	    self.sharedImage = UIGraphicsGetImageFromCurrentImageContext();
-		UIGraphicsEndImageContext();
+        [self setSharedImageWithView:self.sharedBgView];
     }
    
     // Check if the user is using 2 different wallpapers
@@ -122,7 +118,11 @@
 
             if ([self boolForKey:@"kUseEntireWeatherView"]) {
                 [lockscreenWallpaperView addSubview:self.lockScreenBgView];
+
+                [self setSharedImageWithView:self.lockScreenBgView];
             }
+
+           
         }
         if ([self boolForKey:@"kHomescreenEnabled"]) {
             self.homeScreenBgView = [[%c(WUIDynamicWeatherBackground) alloc] initWithFrame:UIScreen.mainScreen.bounds];
@@ -131,6 +131,8 @@
             
             if ([self boolForKey:@"kUseEntireWeatherView"]) {
                 [homescreenWallpaperView addSubview:self.homeScreenBgView];
+
+                [self setSharedImageWithView:self.homeScreenBgView];
             }
         }
     }
@@ -185,8 +187,18 @@
 	return nLayer;
 }
 
+- (void)setSharedImageWithView:(WUIDynamicWeatherBackground *)backgroundView {
+    if (backgroundView != nil) {
+        // Take a screenshot of the current view, to use on SBFWallpaperView's contentView's image, otherwise the background when pulling up on Notification Center and Lockscreen will be see through
+        UIGraphicsBeginImageContextWithOptions(backgroundView.bounds.size, NO, UIScreen.mainScreen.scale);
+        [backgroundView drawViewHierarchyInRect:backgroundView.bounds afterScreenUpdates:YES];
+        self.sharedImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+    }
+}
+
 - (void)updateModel {
-     if (!self.widgetVC) {
+    if (!self.widgetVC) {
         self.widgetVC = [[%c(WALockscreenWidgetViewController) alloc] init];
 
         if ([self.widgetVC respondsToSelector:@selector(_setupWeatherModel)]) {
@@ -196,6 +208,19 @@
     }
 
     if (self.widgetVC) {
+        if ([self.widgetVC.todayModel respondsToSelector:@selector(executeModelUpdateWithCompletion:)]) {
+            
+            if ([self.widgetVC.todayModel isKindOfClass:[WATodayAutoupdatingLocationModel class]]) {
+                WATodayAutoupdatingLocationModel *autoUpdatingModel = (WATodayAutoupdatingLocationModel *)self.widgetVC.todayModel;
+
+                if ([autoUpdatingModel respondsToSelector:@selector(updateLocationTrackingStatus)]) {
+			        [autoUpdatingModel updateLocationTrackingStatus];
+                }
+            }
+           
+            
+            [self.widgetVC.todayModel executeModelUpdateWithCompletion:nil];
+        }
         if ([self.widgetVC respondsToSelector:@selector(todayModelWantsUpdate:)] && self.widgetVC.todayModel) {
             [self.widgetVC todayModelWantsUpdate:self.widgetVC.todayModel];
         }
@@ -218,14 +243,17 @@
 	    }*/
     }
 
-
-   if (self.widgetVC.todayModel.forecastModel.city) {
+    if (self.widgetVC.todayModel.forecastModel.city) {
         self.myCity = self.widgetVC.todayModel.forecastModel.city;
 
         if (self.sharedBgView != nil) {
             [self.sharedBgView setCity:[self myCity] animate:YES];
             [self.sharedBgView.condition setCity:[self myCity] animationDuration:2];
-            
+
+            /*if ([self boolForKey:@"kUseEntireWeatherView"]) {
+                [self setSharedImageWithView:self.sharedBgView];
+            }*/
+
             if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
                 [self setupWeatherEffectLayers];
             }
@@ -234,15 +262,23 @@
             [self.lockScreenBgView setCity:[self myCity] animate:YES];
             [self.lockScreenBgView.condition setCity:[self myCity] animationDuration:2];
 
-            if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+            /*if ([self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kLockscreenEnabled"]) {
+                [self setSharedImageWithView: self.lockScreenBgView];
+            }*/
+
+            if ([self boolForKey: @ "kUseWeatherEffectsOnly"]) {
                 [self setupWeatherEffectLayers];
             }
         }
         if (self.homeScreenBgView != nil) {
-            [self.homeScreenBgView setCity:[self myCity] animate:YES];
-            [self.homeScreenBgView.condition setCity:[self myCity] animationDuration:2];
+            [self.homeScreenBgView setCity: [self myCity] animate: YES];
+            [self.homeScreenBgView.condition setCity: [self myCity] animationDuration: 2];
 
-            if ([self boolForKey:@"kUseWeatherEffectsOnly"]) {
+            /*if ([self boolForKey:@"kUseEntireWeatherView"] && [self boolForKey:@"kHomescreenEnabled"]) {
+                [self setSharedImageWithView: self.homeScreenBgView];
+            }*/
+
+            if ([self boolForKey: @ "kUseWeatherEffectsOnly"]) {
                 [self setupWeatherEffectLayers];
             }
         }

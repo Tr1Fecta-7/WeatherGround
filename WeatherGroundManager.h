@@ -22,6 +22,7 @@
 - (void)setStatusBarTextToWeatherInfo:(NSDictionary *)infoDict;
 - (void)changeLabelTextWithAttributedString:(NSMutableAttributedString *)text;
 - (void)updateModel;
+- (void)setSharedImageWithView:(WUIDynamicWeatherBackground *)backgroundView;
 
 - (void)setupDynamicWeatherBackgrounds;
 - (void)setupWeatherEffectLayers;
